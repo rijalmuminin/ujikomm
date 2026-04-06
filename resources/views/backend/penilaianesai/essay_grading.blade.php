@@ -104,6 +104,96 @@
                                     <div class="progress" style="height: 8px;">
                                         <div id="modalIncorrectBar" class="progress-bar bg-danger" role="progressbar"></div>
                                     </div>
+                    <!-- Modal for User Details -->
+                    <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-gradient-primary text-white">
+                                    <h5 class="modal-title" id="userDetailsModalLabel">
+                                        <i class="ti ti-user me-2"></i>Detail Penilaian Peserta
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-4 text-center mb-4">
+                                            <div class="user-avatar-large mx-auto mb-3" id="modalUserAvatar">
+                                                <!-- Avatar will be inserted here -->
+                                            </div>
+                                            <h4 id="modalUserName" class="mb-1"></h4>
+                                            <p class="text-muted" id="modalUserEmail"></p>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="row">
+                                                <div class="col-6 mb-3">
+                                                    <div class="stat-card">
+                                                        <div class="stat-icon-small bg-success-subtle">
+                                                            <i class="ti ti-file-check text-success"></i>
+                                                        </div>
+                                                        <div class="stat-info">
+                                                            <h3 id="modalTotalEssays" class="mb-0"></h3>
+                                                            <small class="text-muted">Total Essays Graded</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 mb-3">
+                                                    <div class="stat-card">
+                                                        <div class="stat-icon-small bg-warning-subtle">
+                                                            <i class="ti ti-trophy text-warning"></i>
+                                                        </div>
+                                                        <div class="stat-info">
+                                                            <h3 id="modalAvgScore" class="mb-0"></h3>
+                                                            <small class="text-muted">Average Score</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="performance-breakdown mt-4">
+                                                <h6 class="mb-3">Performance Breakdown</h6>
+                                                <div class="progress-item mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="text-success">
+                                                            <i class="ti ti-check-circle me-1"></i>Jawaban Benar
+                                                        </span>
+                                                        <span id="modalCorrectCount" class="fw-bold"></span>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div id="modalCorrectBar" class="progress-bar bg-success" role="progressbar"></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="progress-item mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="text-warning">
+                                                            <i class="ti ti-clock me-1"></i>Jawaban Sebagian
+                                                        </span>
+                                                        <span id="modalPartialCount" class="fw-bold"></span>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div id="modalPartialBar" class="progress-bar bg-warning" role="progressbar"></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="progress-item mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="text-danger">
+                                                            <i class="ti ti-x-circle me-1"></i>Jawaban Salah
+                                                        </span>
+                                                        <span id="modalIncorrectCount" class="fw-bold"></span>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div id="modalIncorrectBar" class="progress-bar bg-danger" role="progressbar"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="ti ti-x me-2"></i>Tutup
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -120,6 +210,7 @@
             </div>
         </div>
     </div>
+
                     <div class="col-3">
                         <div class="text-center">
                             <img src="{{ asset('assets/backend/images/breadcrumb/ChatBc.png') }}" alt="essay-grading"
@@ -141,6 +232,7 @@
         
         <!-- Enhanced Stats Cards -->
         <div class="row">
+
             @php
                 $groupedByUser = $essayAnswers->groupBy('hasilUjian.user_id');
                 $totalUsers = $groupedByUser->count();
@@ -171,6 +263,44 @@
                     
                 $progressPercent = $totalEssays > 0 ? round((($totalEssays - $pendingCount) / $totalEssays) * 100, 1) : 0;
             @endphp
+        @php
+            // Pastikan $essayAnswers ada, jika tidak buat collection kosong
+            $essayAnswers = $essayAnswers ?? collect();
+            $groupedByUser = $essayAnswers->groupBy('hasilUjian.user_id');
+            $totalUsers = $groupedByUser->count();
+            $pendingCount = $essayAnswers->count();
+            
+            $gradedCount = App\Models\HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->whereIn('status_jawaban', ['benar', 'salah', 'sebagian'])
+                ->count();
+                
+            $totalEssays = App\Models\HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->count();
+            
+            $progressPercent = $totalEssays > 0 ? round(($gradedCount / $totalEssays) * 100, 1) : 0;
+            
+            // Get graded users count
+            $gradedUsers = App\Models\HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->whereIn('status_jawaban', ['benar', 'salah', 'sebagian'])
+                ->with('hasilUjian.user')
+                ->get()
+                ->groupBy('hasilUjian.user_id')
+                ->count();
             
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card border-0 shadow-sm stats-card">
@@ -273,7 +403,11 @@
         <div class="tab-content" id="gradingTabContent">
             <!-- Pending Essays Tab -->
             <div class="tab-pane fade show active" id="pending-content" role="tabpanel">
+
                 @if($essayAnswers->count() > 0)
+
+                @if(isset($essayAnswers) && $essayAnswers->count() > 0)
+
                     @php
                         $groupedByUser = $essayAnswers->groupBy('hasilUjian.user_id');
                     @endphp
@@ -307,7 +441,11 @@
                                                 <p class="user-email">{{ $user->email }}</p>
                                                 <span class="member-since">
                                                     <i class="ti ti-calendar"></i>
+
                                                     Member since {{ $user->created_at->format('M Y') }}
+
+                                                    Member sejak {{ \Carbon\Carbon::parse($user->created_at)->locale('id')->isoFormat('MMMM YYYY') }}
+
                                                 </span>
                                             </div>
                                         </div>
@@ -371,15 +509,25 @@
                                                         <span class="quiz-badge essays-badge">{{ $quizEssayCount }} ESSAYS</span>
                                                         <span class="quiz-badge points-badge">{{ $quizBobot }}PT</span>
                                                         @if($isRecent)
+
                                                             <span class="quiz-badge new-badge">NEW</span>
+
+                                                            <span class="quiz-badge new-badge">BARU</span>
+
                                                         @endif
                                                     </div>
                                                     <div class="quiz-meta">
                                                         <span class="quiz-code"># {{ $quiz->kode_quiz }}</span>
                                                         <span class="quiz-time">
+
                                                             <i class="ti ti-clock"></i>
                                                             {{ $timeAgo }}
                                                         </span>
+
+                                                        <i class="ti ti-clock"></i>
+                                                        {{ \Carbon\Carbon::parse($quiz->created_at)->locale('id')->diffForHumans() }}
+                                                    </span>
+
                                                     </div>
                                                 </div>
                                             </div>
@@ -391,6 +539,7 @@
                                         <div class="footer-info">
                                             <div class="pending-info">
                                                 <i class="ti ti-clock"></i>
+
                                                 <span>{{ $essayCount }} pending reviews</span>
                                             </div>
                                             <div class="priority-info">
@@ -398,16 +547,54 @@
                                                     <span class="priority-text urgent">
                                                         <i class="ti ti-alert-triangle"></i>
                                                         Urgent priority
+
+                                                <span>
+                                                    @switch($essayCount)
+                                                        @case(0)
+                                                            Semua esai telah dinilai
+                                                            @break
+                                                        @case(1)
+                                                            1 esai belum dinilai
+                                                            @break
+                                                        @default
+                                                            {{ $essayCount }} esai belum dinilai
+                                                    @endswitch
+                                                </span>
+                                            </div>
+                                            <div class="priority-info">
+                                                @if($essayCount > 10)
+                                                    <span class="priority-text urgent">
+                                                        <i class="ti ti-alert-triangle"></i>
+                                                        Sangat mendesak - Butuh tim tambahan
+                                                    </span>
+                                                @elseif($essayCount > 5)
+                                                    <span class="priority-text urgent">
+                                                        <i class="ti ti-alert-circle"></i>
+                                                        Mendesak - Segera tindak lanjuti
+
                                                     </span>
                                                 @elseif($essayCount > 2)
                                                     <span class="priority-text medium">
                                                         <i class="ti ti-clock"></i>
+
                                                         Medium priority
                                                     </span>
                                                 @else
                                                     <span class="priority-text normal">
                                                         <i class="ti ti-check"></i>
                                                         Normal priority
+
+                                                        Sedang - Perlu perhatian hari ini
+                                                    </span>
+                                                @elseif($essayCount > 0)
+                                                    <span class="priority-text normal">
+                                                        <i class="ti ti-info-circle"></i>
+                                                        Rendah - Dapat dikerjakan besok
+                                                    </span>
+                                                @else
+                                                    <span class="priority-text success">
+                                                        <i class="ti ti-check-circle"></i>
+                                                        Selesai - Semua esai telah dinilai
                                                     </span>
                                                 @endif
                                             </div>
@@ -423,6 +610,45 @@
                                                 </div>
                                             </a>
                                         </div>
+
+                                        @if($essayCount > 0)
+                                            <div class="action-button">
+                                                @if($essayCount == 1)
+                                                    <a href="{{ route('quiz.essay.grade', $userEssays->first()->id) }}" class="grade-btn">
+                                                        <div class="btn-icon">
+                                                            <i class="ti ti-edit"></i>
+                                                        </div>
+                                                        <div class="btn-content">
+                                                            <span class="btn-title">Beri Nilai</span>
+                                                            <span class="btn-subtitle">Tinjau jawaban esai</span>
+                                                        </div>
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('quiz.essay.grade-user', $userId) }}" class="grade-btn">
+                                                        <div class="btn-icon">
+                                                            <i class="ti ti-list-check"></i>
+                                                            {{-- BADGE MERAH DIHAPUS DARI SINI --}}
+                                                        </div>
+                                                        <div class="btn-content">
+                                                            <span class="btn-title">Mulai Penilaian</span>
+                                                            <span class="btn-subtitle">{{ $essayCount }} esai menunggu</span>
+                                                        </div>
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <div class="action-button">
+                                                <a href="{{ route('quiz.essay.grading') }}" class="grade-btn grade-btn-completed">
+                                                    <div class="btn-icon">
+                                                        <i class="ti ti-check-circle"></i>
+                                                    </div>
+                                                    <div class="btn-content">
+                                                        <span class="btn-title">Lihat Hasil</span>
+                                                        <span class="btn-subtitle">Semua penilaian selesai</span>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -430,7 +656,11 @@
                     </div>
 
                     <!-- Pagination -->
+
                     @if($essayAnswers->hasPages())
+
+                    @if(isset($essayAnswers) && $essayAnswers->hasPages())
+
                         <div class="d-flex justify-content-center mt-4">
                             {{ $essayAnswers->links() }}
                         </div>

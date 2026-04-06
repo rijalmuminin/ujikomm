@@ -1,29 +1,18 @@
 <aside class="left-sidebar with-vertical">
     <div>
-<div class="brand-logo d-flex align-items-center justify-content-between">
-    <div class="text-nowrap logo-img">
-        <img src="{{ asset('assets/backend/images/logos/cum.jpeg') }}"
-             class="dark-logo m-1"
-             alt="Logo-Dark"
-             style="width: 150px; pointer-events: none;" />
-
-        <img src="{{ asset('assets/backend/images/logos/cum.jpeg') }}"
-             class="light-logo m-1"
-             alt="Logo-Light"
-             style="width: 200px; pointer-events: none;" />
-    </div>
-
-    <a href="javascript:void(0)"
-       class="sidebartoggler ms-auto text-decoration-none fs-5 d-block d-xl-none">
-        <i class="ti ti-x"></i>
-    </a>
-</div>
-
+        <div class="brand-logo d-flex align-items-center justify-content-between">
+            <a href="{{ Auth::user()->isAdmin ? route('admin.quiz-terbaru') : route('dashboard') }}" class="text-nowrap logo-img">
+                <img src="{{ asset('/assets/backend/images/logos/logo-TestHivee.png') }}" class="dark-logo m-1" alt="Logo-Dark" style="width: 180px;" />
+                <img src="{{ asset('/assets/backend/images/logos/logo-TestHivee.png') }}" class="light-logo m-1" alt="Logo-Light" style="width: 180px;" />
+            </a>
+            <a href="javascript:void(0)" class="sidebartoggler ms-auto text-decoration-none fs-5 d-block d-xl-none">
+                <i class="ti ti-x"></i>
+            </a>
+        </div>
 
         <nav class="sidebar-nav scroll-sidebar" data-simplebar>
-            @if (Auth::user()->isAdmin == '1' || Auth::user()->isAdmin == '2' )
+            @if (Auth::user()->isAdmin == '1' || Auth::user()->isAdmin == '2')
                 @php
-                    // Hitung jumlah esai yang belum dinilai untuk admin yang login
                     $pendingEssayCount = 0;
                     try {
                         $pendingEssayCount = App\Models\HasilUjianDetail::whereHas('soal', function($query) {
@@ -35,7 +24,6 @@
                         ->where('status_jawaban', 'pending')
                         ->count();
                     } catch (\Exception $e) {
-                        // Jika ada error, set ke 0
                         $pendingEssayCount = 0;
                     }
                 @endphp
@@ -45,41 +33,40 @@
                         <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
                         <span class="hide-menu">Dashboard</span>
                     </li>
+                    
                     <li class="sidebar-item {{ request()->routeIs('admin.quiz-terbaru') ? 'active' : '' }}">
                         <a class="sidebar-link justify-content-between" href="{{ route('admin.quiz-terbaru') }}">
                             <div class="d-flex align-items-center gap-3">
                                 <span class="d-flex"><i class="ti ti-home"></i></span>
                                 <span class="hide-menu">Beranda</span>
                             </div>
-                            <span class="hide-menu badge rounded-pill border border-primary text-primary fs-2 py-1 px-2">★</span>
+                            <span class="badge rounded-pill border border-primary text-primary fs-2 py-1 px-2">★</span>
                         </a>
                     </li>
+
                     <li class="sidebar-item {{ request()->routeIs('quiz.hasil.*') ? 'active' : '' }}">
                         <a class="sidebar-link" href="{{ route('quiz.hasil.keseluruhan') }}">
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="d-flex"><i class="ti ti-chart-bar"></i></span>
-                                <span class="hide-menu">Hasil Quiz</span>
-                            </div>
+                            <span class="d-flex"><i class="ti ti-chart-bar"></i></span>
+                            <span class="hide-menu">Hasil Quiz</span>
                         </a>
                     </li>
+
                     <li class="sidebar-item {{ request()->routeIs('quiz.essay.*') ? 'active' : '' }}">
                         <a class="sidebar-link justify-content-between" href="{{ route('quiz.essay.grading') }}">
                             <div class="d-flex align-items-center gap-3">
                                 <span class="d-flex position-relative">
                                     <i class="ti ti-edit"></i>
                                     @if($pendingEssayCount > 0)
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.5rem; padding: 2px 4px;">
                                             {{ $pendingEssayCount > 9 ? '9+' : $pendingEssayCount }}
                                         </span>
                                     @endif
                                 </span>
                                 <span class="hide-menu">Penilaian Esai</span>
                             </div>
-                            @if($pendingEssayCount > 0)
-                                <span class="badge bg-warning text-dark rounded-pill">{{ $pendingEssayCount }}</span>
-                            @else
-                                <span class="badge bg-success text-white rounded-pill">0</span>
-                            @endif
+                            <span class="badge {{ $pendingEssayCount > 0 ? 'bg-warning text-dark' : 'bg-success text-white' }} rounded-pill">
+                                {{ $pendingEssayCount }}
+                            </span>
                         </a>
                     </li>
 
@@ -87,23 +74,26 @@
                         <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
                         <span class="hide-menu">Kelola Data</span>
                     </li>
+
                     @if (Auth::user()->isAdmin == '2')
-                        <li class="sidebar-item {{ request()->routeIs('users.index') ? 'active' : '' }}">
+                    <li class="sidebar-item {{ request()->routeIs('users.index') ? 'active' : '' }}">
                         <a class="sidebar-link" href="{{ route('users.index') }}">
-                                <span class="d-flex"><i class="ti ti-users"></i></span>
-                                <span class="hide-menu">User</span>
-                            </a>
-                        </li>
+                            <span class="d-flex"><i class="ti ti-users"></i></span>
+                            <span class="hide-menu">User</span>
+                        </a>
+                    </li>
                     @endif
+
                     <li class="sidebar-item {{ request()->routeIs('kelas.index') ? 'active' : '' }}">
                         <a class="sidebar-link" href="{{ route('kelas.index') }}">
                             <span class="d-flex"><i class="ti ti-school"></i></span>
                             <span class="hide-menu">Kelas</span>
                         </a>
                     </li>
-                        <li class="sidebar-item {{ request()->routeIs('siswa.index') ? 'active' : '' }}">
+
+                    <li class="sidebar-item {{ request()->routeIs('siswa.index') ? 'active' : '' }}">
                         <a class="sidebar-link" href="{{ route('siswa.index') }}">
-                            <span class="d-flex"><i class="ti ti-school"></i></span>
+                            <span class="d-flex"><i class="ti ti-user-circle"></i></span>
                             <span class="hide-menu">Siswa</span>
                         </a>
                     </li>
@@ -122,42 +112,31 @@
                         </a>
                     </li>
 
-                   
-                    {{-- *** KELOLAH QUIZ - TANPA SUBMENU PENILAIAN ESAI *** --}}
-              <li class="sidebar-item {{ request()->is('admin/quiz*') && !request()->routeIs('quiz.essay.*') ? 'active' : '' }}">
-    <a class="sidebar-link d-flex justify-content-between align-items-center" 
-       data-bs-toggle="collapse" 
-       href="#quizSubmenu" 
-       role="button"
-       aria-expanded="{{ request()->is('admin/quiz*') && !request()->routeIs('quiz.essay.*') ? 'true' : 'false' }}" 
-       aria-controls="quizSubmenu">
-        <span class="d-flex align-items-center">
-            <i class="ti ti-chart-donut-3 me-2"></i>
-            <span class="hide-menu">Kelolah Quiz</span>
-        </span>
-        <i class="ti ti-chevron-down ms-auto"></i>
-    </a>
-    
-    <ul id="quizSubmenu" 
-        class="collapse list-unstyled ps-3 {{ request()->is('admin/quiz*') && !request()->routeIs('quiz.essay.*') ? 'show' : '' }}">
-        
-        <li class="sidebar-item {{ request()->routeIs('quiz.index') ? 'active' : '' }}">
-            <a href="{{ route('quiz.index') }}" class="sidebar-link">
-                <i class="ti ti-circle me-2"></i>
-                <span class="hide-menu">Lihat Quiz</span>
-            </a>
-        </li>
-        
-        <li class="sidebar-item {{ request()->routeIs('quiz.create') ? 'active' : '' }}">
-            <a href="{{ route('quiz.create') }}" class="sidebar-link">
-                <i class="ti ti-circle me-2"></i>
-                <span class="hide-menu">Buat Quiz</span>
-            </a>
-        </li>
-    </ul>
-</li>
-
+                    <li class="sidebar-item">
+                        <a class="sidebar-link has-arrow {{ request()->is('admin/quiz*') && !request()->routeIs('quiz.essay.*') ? 'active' : '' }}" 
+                           data-bs-toggle="collapse" href="#quizSubmenu" aria-expanded="false">
+                            <span class="d-flex align-items-center">
+                                <i class="ti ti-chart-donut-3"></i>
+                                <span class="hide-menu ms-3">Kelola Quiz</span>
+                            </span>
+                        </a>
+                        <ul id="quizSubmenu" class="collapse first-level {{ request()->is('admin/quiz*') && !request()->routeIs('quiz.essay.*') ? 'show' : '' }}">
+                            <li class="sidebar-item">
+                                <a href="{{ route('quiz.index') }}" class="sidebar-link {{ request()->routeIs('quiz.index') ? 'active' : '' }}">
+                                    <i class="ti ti-circle"></i>
+                                    <span class="hide-menu">Lihat Quiz</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-item">
+                                <a href="{{ route('quiz.create') }}" class="sidebar-link {{ request()->routeIs('quiz.create') ? 'active' : '' }}">
+                                    <i class="ti ti-circle"></i>
+                                    <span class="hide-menu">Buat Quiz</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
+
             @else
                 <ul id="sidebarnav">
                     <li class="nav-small-cap">
@@ -171,13 +150,13 @@
                                 <span class="d-flex"><i class="ti ti-home"></i></span>
                                 <span class="hide-menu">Quiz Terbaru</span>
                             </div>
-                            <span class="hide-menu badge rounded-pill border border-primary text-primary fs-2 py-1 px-2">★</span>
+                            <span class="badge rounded-pill border border-primary text-primary fs-2 py-1 px-2">★</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item {{ request()->routeIs('histori-pengerjaan') ? 'active' : '' }}">
                         <a class="sidebar-link" href="{{ route('histori-pengerjaan') }}">
-                            <span class="d-flex"><i class="ti ti-user"></i></span>
+                            <span class="d-flex"><i class="ti ti-history"></i></span>
                             <span class="hide-menu">Riwayat Pengerjaan</span>
                         </a>
                     </li>
@@ -188,44 +167,31 @@
 </aside>
 
 <style>
+    /* Sidebar Active States */
     .sidebar-item.active > .sidebar-link {
-        background-color: #f8f9fa;
+        background-color: rgba(13, 110, 253, 0.05);
         font-weight: 600;
-        color: #0d6efd;
-        border-radius: 0.375rem;
+        color: #0d6efd !important;
+        border-radius: 8px;
     }
 
     .sidebar-item.active i {
         color: #0d6efd;
     }
 
-    /* *** STYLING untuk notification badge *** */
+    /* Notification Badge Styling */
     .sidebar-link .badge {
-        font-size: 0.75rem;
-        min-width: 18px;
-        height: 18px;
+        font-size: 0.7rem;
+        min-width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    .position-relative .badge {
-        z-index: 10;
-    }
-
-    /* Animasi untuk badge notification */
-    .badge.bg-danger {
-        animation: pulse 2s infinite;
-    }
-
-    .badge.bg-warning {
-        animation: glow 2s infinite alternate;
-    }
-
-    /* Badge hijau untuk status "no pending" */
-    .badge.bg-success {
-        opacity: 0.8;
-    }
+    /* Animations */
+    .badge.bg-danger { animation: pulse 2s infinite; }
+    .badge.bg-warning { animation: glow 2s infinite alternate; }
 
     @keyframes pulse {
         0% { transform: scale(1); }
@@ -234,16 +200,7 @@
     }
 
     @keyframes glow {
-        from { box-shadow: 0 0 5px rgba(255, 193, 7, 0.5); }
-        to { box-shadow: 0 0 10px rgba(255, 193, 7, 0.8); }
-    }
-
-    /* Responsive badge pada mobile */
-    @media (max-width: 768px) {
-        .sidebar-link .badge {
-            font-size: 0.65rem;
-            min-width: 16px;
-            height: 16px;
-        }
+        from { box-shadow: 0 0 4px rgba(255, 193, 7, 0.4); }
+        to { box-shadow: 0 0 10px rgba(255, 193, 7, 0.7); }
     }
 </style>

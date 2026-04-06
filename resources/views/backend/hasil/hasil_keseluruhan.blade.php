@@ -67,7 +67,11 @@
                             </div>
                         </div>
                         <div>
+
                             <h5 class="mb-1">Filter Hasil quiz</h5>
+
+                            <h5 class="mb-1">Filter Hasil Quiz</h5>
+
                             <p class="text-muted mb-0">Pilih quiz untuk melihat hasil yang spesifik</p>
                         </div>
                     </div>
@@ -195,6 +199,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="border-0 fw-bold text-dark py-3">
+
                                     <i class="ti ti-hash me-1"></i>No
                                 </th>
                                 <th scope="col" class="border-0 fw-bold text-dark py-3">

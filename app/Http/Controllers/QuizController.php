@@ -416,6 +416,7 @@ class QuizController extends Controller
                             $correctAnswers = $questionData['checkbox_correct'] ?? [];
                             $soalData['jawaban_benar'] = implode(',', $correctAnswers);
                             break;
+
                     }
 
                     if (isset($questionData['id']) && !empty($questionData['id'])) {
@@ -562,48 +563,54 @@ class QuizController extends Controller
                         $statusJawaban = 'salah';
                     }
                     break;
-
-                case 'checkbox':
-                    $jawabanUserArray = $request->input('jawaban_' . $soal->id, []);
-                    $jawabanUser = is_array($jawabanUserArray) ? implode(',', $jawabanUserArray) : '';
-
-                    // Casting string semua agar cocok saat dibanding
-                    $correctAnswers = array_map('strval', explode(',', $soal->jawaban_benar));
-                    $userAnswers = array_map('strval', $jawabanUserArray);
-
-                    // Jawaban benar & salah
-                    $jawabanBenarDipilih = array_intersect($correctAnswers, $userAnswers);
-                    $jawabanSalahDipilih = array_diff($userAnswers, $correctAnswers);
-
-                    $jumlahBenarDipilih = count($jawabanBenarDipilih);
-                    $jumlahSalahDipilih = count($jawabanSalahDipilih);
-                    $totalJawabanBenar = count($correctAnswers);
-
+                    
                     if ($totalJawabanBenar > 0) {
                         $bobotPerJawaban = $soal->bobot / $totalJawabanBenar;
+                    };
+                case 'checkbox':
+    $jawabanUserArray = $request->input('jawaban_' . $soal->id, []);
+    $jawabanUser = is_array($jawabanUserArray) ? implode(',', $jawabanUserArray) : '';
 
-                        // Hitung nilai akhir (penalti = 50% dari nilai benar)
-                        $nilaiBenar = $jumlahBenarDipilih * $bobotPerJawaban;
-                        $penalti = $jumlahSalahDipilih * ($bobotPerJawaban / 2);
-                        $bobotDiperoleh = max(0, $nilaiBenar - $penalti);
+    // Casting string semua agar cocok saat dibanding
+    $correctAnswers = array_map('strval', explode(',', $soal->jawaban_benar));
+    $userAnswers = array_map('strval', $jawabanUserArray);
 
-                        $bobotBenar += $bobotDiperoleh;
+    // Filter jawaban benar & salah
+    $jawabanBenarDipilih = array_intersect($correctAnswers, $userAnswers);
+    $jawabanSalahDipilih = array_diff($userAnswers, $correctAnswers);
 
-                        // Status
-                        if ($jumlahBenarDipilih === $totalJawabanBenar && $jumlahSalahDipilih === 0) {
-                            $jawabanBenar++;
-                            $statusJawaban = 'benar';
-                        } elseif ($bobotDiperoleh > 0) {
-                            $statusJawaban = 'sebagian';
-                        } else {
-                            $jumlahSalah++;
-                            $statusJawaban = 'salah';
-                        }
-                    } else {
-                        $jumlahSalah++;
-                        $statusJawaban = 'salah';
-                    }
-                    break;
+    $jumlahBenarDipilih = count($jawabanBenarDipilih);
+    $jumlahSalahDipilih = count($jawabanSalahDipilih);
+    $totalJawabanBenar = count($correctAnswers);
+
+    if ($totalJawabanBenar > 0) {
+        $bobotPerJawaban = $soal->bobot / $totalJawabanBenar;
+
+        // Hitung nilai akhir (penalti = 50% dari nilai benar per poin)
+        $nilaiBenar = $jumlahBenarDipilih * $bobotPerJawaban;
+        $penalti = $jumlahSalahDipilih * ($bobotPerJawaban / 2);
+        
+        // max(0, ...) memastikan nilai tidak minus jika salahnya terlalu banyak
+        $bobotDiperoleh = max(0, $nilaiBenar - $penalti);
+
+        // TAMBAHKAN KE TOTAL (Cukup satu kali saja)
+        $bobotBenar += $bobotDiperoleh;
+
+        // Penentuan Status
+        if ($jumlahBenarDipilih === $totalJawabanBenar && $jumlahSalahDipilih === 0) {
+            $jawabanBenar++;
+            $statusJawaban = 'benar';
+        } elseif ($bobotDiperoleh > 0) {
+            $statusJawaban = 'sebagian';
+        } else {
+            $jumlahSalah++;
+            $statusJawaban = 'salah';
+        }
+    } else {
+        $jumlahSalah++;
+        $statusJawaban = 'salah';
+    }
+    break;
 
                 case 'essay':
                     $jawabanUser = $request->input('jawaban_' . $soal->id);
@@ -793,12 +800,18 @@ class QuizController extends Controller
         }
     }
 
+
     // ====================================================
     // ESSAY GRADING SYSTEM METHODS - PERBAIKAN LENGKAP
     // ====================================================
 
     /**
      * Tampilkan daftar jawaban esai yang perlu dinilai
+     */
+
+
+    /**
+     * Tampilkan daftar jawaban esai yang perlu dinilai - FIXED VERSION
      */
     public function essayGrading()
     {
@@ -809,6 +822,7 @@ class QuizController extends Controller
             return redirect()->route('dashboard')
                 ->with('error', 'Anda perlu login sebagai admin untuk mengakses fitur penilaian esai.');
         }
+
 
         try {
             // Ambil semua hasil ujian dengan soal esai yang belum dinilai
@@ -823,11 +837,87 @@ class QuizController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
+
             return view('backend.penilaianesai.essay_grading', compact('essayAnswers'));
+
+            // *** PERBAIKAN: Hitung statistik dengan benar ***
+            
+            // 1. Total esai yang perlu dinilai (pending)
+            $pendingCount = HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->where('status_jawaban', 'pending')
+                ->count();
+                
+            // 2. Total esai yang sudah dinilai
+            $gradedCount = HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->whereIn('status_jawaban', ['benar', 'salah', 'sebagian'])
+                ->count();
+                
+            // 3. Total SEMUA esai (pending + graded)
+            $totalEssays = HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->count();
+            
+            // 4. Hitung progress percentage
+            $progressPercent = $totalEssays > 0 ? round(($gradedCount / $totalEssays) * 100, 1) : 0;
+            
+            // 5. Group by user untuk card display
+            $groupedByUser = $essayAnswers->groupBy('hasilUjian.user_id');
+            $totalUsers = $groupedByUser->count();
+            
+            // 6. Hitung user yang sudah selesai dinilai semua esainya
+            $gradedUsers = HasilUjianDetail::whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->whereIn('status_jawaban', ['benar', 'salah', 'sebagian'])
+                ->with('hasilUjian.user')
+                ->get()
+                ->groupBy('hasilUjian.user_id')
+                ->count();
+
+            // Debug log untuk troubleshooting
+            Log::info('Essay Grading Stats', [
+                'pending_count' => $pendingCount,
+                'graded_count' => $gradedCount,
+                'total_essays' => $totalEssays,
+                'progress_percent' => $progressPercent,
+                'total_users' => $totalUsers,
+                'graded_users' => $gradedUsers,
+                'essay_answers_count' => $essayAnswers->count()
+            ]);
+
+            // PASTIKAN semua variable dikirim ke view
+            return view('backend.penilaianesai.essay_grading', compact(
+                'essayAnswers',      // Variable utama yang berisi data essay
+                'pendingCount',
+                'gradedCount', 
+                'totalEssays',
+                'progressPercent',
+                'totalUsers',
+                'gradedUsers'
+            ));
+
             
         } catch (\Exception $e) {
             Log::error('Error in essayGrading: ' . $e->getMessage());
             
+
             return redirect()->route('dashboard')
                 ->with('error', 'Terjadi kesalahan saat memuat halaman penilaian esai.');
         }
@@ -865,6 +955,26 @@ class QuizController extends Controller
             
             return redirect()->route('quiz.essay.grading')
                 ->with('error', 'Jawaban esai tidak ditemukan atau terjadi kesalahan.');
+
+            // Jika terjadi error, buat variable kosong untuk menghindari undefined variable
+            $essayAnswers = collect();
+            $pendingCount = 0;
+            $gradedCount = 0;
+            $totalEssays = 0;
+            $progressPercent = 0;
+            $totalUsers = 0;
+            $gradedUsers = 0;
+            
+            return view('backend.penilaianesai.essay_grading', compact(
+                'essayAnswers',
+                'pendingCount',
+                'gradedCount', 
+                'totalEssays',
+                'progressPercent',
+                'totalUsers',
+                'gradedUsers'
+            ))->with('error', 'Terjadi kesalahan saat memuat halaman penilaian esai.');
+
         }
     }
 
@@ -1245,4 +1355,251 @@ class QuizController extends Controller
                 ->with('error', 'Hasil quiz tidak ditemukan atau terjadi kesalahan.');
         }
     }
+
+   
+    /**
+    * Hapus hasil quiz dan semua detail jawaban terkait
+    */
+    public function hapusHasil($hasilId)
+    {
+        $user = Auth::user();
+        
+        // Debug log
+        Log::info('hapusHasil called', [
+            'hasil_id' => $hasilId,
+            'user_id' => $user ? $user->id : 'null',
+            'user_admin' => $user ? $user->isAdmin : 'null'
+        ]);
+        
+        // Cek apakah user adalah admin
+        if (!$user || ($user->isAdmin != 1 && $user->isAdmin != 2)) {
+            Log::warning('Access denied in hapusHasil', ['user_id' => $user ? $user->id : 'null']);
+            
+            return redirect()->route('dashboard')
+                ->with('error', 'Akses ditolak. Hanya admin yang dapat menghapus hasil quiz.');
+        }
+
+        try {
+            // Ambil hasil ujian dengan memastikan quiz milik admin yang login
+            $hasil = HasilUjian::with(['quiz', 'user', 'detail'])
+                ->whereHas('quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->findOrFail($hasilId);
+
+            Log::info('Found hasil ujian', [
+                'hasil_id' => $hasil->id,
+                'quiz_title' => $hasil->quiz->judul_quiz,
+                'user_name' => $hasil->user->name,
+                'detail_count' => $hasil->detail->count()
+            ]);
+
+            DB::beginTransaction();
+
+            // Simpan info untuk pesan sukses
+            $pesertaNama = $hasil->user->name;
+            $quizJudul = $hasil->quiz->judul_quiz;
+
+            // Hapus semua detail jawaban terlebih dahulu
+            $deletedDetails = $hasil->detail()->delete();
+            Log::info('Deleted detail count', ['count' => $deletedDetails]);
+
+            // Hapus hasil ujian
+            $hasil->delete();
+            Log::info('Deleted hasil ujian', ['hasil_id' => $hasilId]);
+
+            DB::commit();
+
+            Log::info('Successfully deleted quiz result', [
+                'hasil_id' => $hasilId,
+                'peserta' => $pesertaNama,
+                'quiz' => $quizJudul
+            ]);
+
+            // Redirect dengan session success
+            return redirect()->route('quiz.hasil.keseluruhan')
+                ->with('success', "Hasil quiz '{$quizJudul}' dari peserta '{$pesertaNama}' berhasil dihapus.")
+                ->with('alert_type', 'success'); // Extra session untuk debugging
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Quiz result not found', [
+                'hasil_id' => $hasilId,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('quiz.hasil.keseluruhan')
+                ->with('error', 'Hasil quiz tidak ditemukan atau Anda tidak memiliki akses untuk menghapusnya.')
+                ->with('alert_type', 'error');
+                
+        } catch (\Exception $e) {
+            DB::rollback();
+            
+            Log::error('Error deleting quiz result', [
+                'hasil_id' => $hasilId,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('quiz.hasil.keseluruhan')
+                ->with('error', 'Terjadi kesalahan saat menghapus hasil quiz: ' . $e->getMessage())
+                ->with('alert_type', 'error');
+        }
+    }
+
+        /**
+    * Tampilkan form penilaian untuk multiple essays dari satu user
+    */
+    public function gradeUserEssays($userId)
+    {
+        $user = Auth::user();
+        
+        if (!$user || ($user->isAdmin != 1 && $user->isAdmin != 2)) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Anda perlu login sebagai admin.');
+        }
+
+        try {
+            // Get all pending essays from the specified user
+            $userEssays = HasilUjianDetail::with(['hasilUjian.user', 'hasilUjian.quiz', 'soal'])
+                ->whereHas('soal', function($query) {
+                    $query->where('tipe', 'essay');
+                })
+                ->whereHas('hasilUjian.quiz', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->whereHas('hasilUjian', function($query) use ($userId) {
+                    $query->where('user_id', $userId);
+                })
+                ->where('status_jawaban', 'pending')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($userEssays->isEmpty()) {
+                return redirect()->route('quiz.essay.grading')
+                    ->with('info', 'Tidak ada esai yang perlu dinilai untuk user ini.');
+            }
+
+            // Get the first essay for the view
+            $essayDetail = $userEssays->first();
+            
+            return view('backend.penilaianesai.grade_multiple', compact('userEssays', 'essayDetail'));
+            
+        } catch (\Exception $e) {
+            Log::error('Error in gradeUserEssays: ' . $e->getMessage());
+            
+            return redirect()->route('quiz.essay.grading')
+                ->with('error', 'Terjadi kesalahan saat memuat halaman penilaian.');
+        }
+    }
+
+    /**
+     * Simpan penilaian untuk multiple essays
+     */
+    public function gradeMultipleEssay(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user || ($user->isAdmin != 1 && $user->isAdmin != 2)) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Anda perlu login sebagai admin untuk melakukan penilaian.');
+        }
+
+        try {
+            $validated = $request->validate([
+                'grades' => 'required|array',
+                'grades.*.detail_id' => 'required|integer|exists:hasil_ujian_details,id',
+                'grades.*.bobot_diperoleh' => 'required|numeric|min:0',
+                'grades.*.status_jawaban' => 'required|in:benar,salah,sebagian',
+                'grades.*.feedback' => 'nullable|string|max:1000',
+            ]);
+
+            DB::beginTransaction();
+
+            $updatedExams = [];
+
+            foreach ($validated['grades'] as $gradeData) {
+                $essayDetail = HasilUjianDetail::with('hasilUjian.quiz')
+                    ->whereHas('hasilUjian.quiz', function($query) {
+                        $query->where('user_id', Auth::id());
+                    })
+                    ->findOrFail($gradeData['detail_id']);
+
+                // Validasi bobot maksimal
+                if ($gradeData['bobot_diperoleh'] > $essayDetail->bobot_soal) {
+                    throw new \Exception("Bobot untuk detail ID {$gradeData['detail_id']} melebihi bobot soal.");
+                }
+
+                $essayDetail->update([
+                    'bobot_diperoleh' => $gradeData['bobot_diperoleh'],
+                    'status_jawaban' => $gradeData['status_jawaban'],
+                    'feedback' => $gradeData['feedback'] ?? null,
+                ]);
+
+                // Kumpulkan ID hasil ujian yang perlu dihitung ulang
+                $updatedExams[] = $essayDetail->hasil_ujian_id;
+            }
+
+            // Hitung ulang skor untuk setiap hasil ujian yang terpengaruh
+            foreach (array_unique($updatedExams) as $examId) {
+                $this->recalculateExamScore($examId);
+            }
+
+            DB::commit();
+
+            return redirect()->route('quiz.essay.grading')
+                ->with('success', count($validated['grades']) . ' jawaban esai berhasil dinilai dan skor telah diperbarui.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error grading multiple essays: ' . $e->getMessage());
+
+            return back()->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Tampilkan form penilaian untuk single essay
+     */
+
+    /**
+     * Mass grading untuk soal tertentu (optional - untuk future use)
+     */
+    public function massGradeEssay($soalId)
+    {
+        $user = Auth::user();
+        
+        if (!$user || ($user->isAdmin != 1 && $user->isAdmin != 2)) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Anda perlu login sebagai admin.');
+        }
+
+        try {
+            $soal = \App\Models\Soal::with('quiz')->findOrFail($soalId);
+            
+            // Pastikan soal milik admin yang login
+            if ($soal->quiz->user_id !== Auth::id()) {
+                return redirect()->route('quiz.essay.grading')
+                    ->with('error', 'Anda tidak memiliki akses untuk menilai soal ini.');
+            }
+
+            // Get all pending answers for this question
+            $essayAnswers = HasilUjianDetail::with(['hasilUjian.user', 'hasilUjian.quiz'])
+                ->where('soal_id', $soalId)
+                ->where('status_jawaban', 'pending')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return view('backend.penilaianesai.mass_grade', compact('soal', 'essayAnswers'));
+            
+        } catch (\Exception $e) {
+            Log::error('Error in massGradeEssay: ' . $e->getMessage());
+            
+            return redirect()->route('quiz.essay.grading')
+                ->with('error', 'Soal tidak ditemukan atau terjadi kesalahan.');
+        }
+    }
+
 }
