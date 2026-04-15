@@ -301,6 +301,7 @@
                 ->get()
                 ->groupBy('hasilUjian.user_id')
                 ->count();
+                @endphp
             
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card border-0 shadow-sm stats-card">
@@ -562,98 +563,92 @@
                                                 </span>
                                             </div>
                                             <div class="priority-info">
-                                                @if($essayCount > 10)
-                                                    <span class="priority-text urgent">
-                                                        <i class="ti ti-alert-triangle"></i>
-                                                        Sangat mendesak - Butuh tim tambahan
-                                                    </span>
-                                                @elseif($essayCount > 5)
-                                                    <span class="priority-text urgent">
-                                                        <i class="ti ti-alert-circle"></i>
-                                                        Mendesak - Segera tindak lanjuti
+<div class="priority-info">
+    @if($essayCount > 10)
+        <span class="priority-text urgent">
+            <i class="ti ti-alert-triangle"></i>
+            Sangat mendesak - Butuh tim tambahan
+        </span>
+    @elseif($essayCount > 5)
+        <span class="priority-text urgent">
+            <i class="ti ti-alert-circle"></i>
+            Mendesak - Segera tindak lanjuti
+        </span>
+    @elseif($essayCount > 2)
+        <span class="priority-text medium">
+            <i class="ti ti-clock"></i>
+            Medium priority
+        </span>
+    @elseif($essayCount > 0)
+        <span class="priority-text normal">
+            <i class="ti ti-info-circle"></i>
+            Rendah - Dapat dikerjakan besok
+        </span>
+    @else
+        <span class="priority-text success">
+            <i class="ti ti-check-circle"></i>
+            Selesai - Semua esai telah dinilai
+        </span>
+    @endif
+</div>
 
-                                                    </span>
-                                                @elseif($essayCount > 2)
-                                                    <span class="priority-text medium">
-                                                        <i class="ti ti-clock"></i>
+@foreach($uniqueQuizzes->take(1) as $quizId => $quizEssays)
 
-                                                        Medium priority
-                                                    </span>
-                                                @else
-                                                    <span class="priority-text normal">
-                                                        <i class="ti ti-check"></i>
-                                                        Normal priority
+    <div class="action-button">
+        <a href="{{ route('quiz.essay.grade', $quizEssays->first()->id) }}" class="grade-btn">
+            <div class="btn-icon">
+                <i class="ti ti-edit"></i>
+            </div>
+            <div class="btn-content">
+                <span class="btn-title">Grade Essays</span>
+                <span class="btn-subtitle">Start reviewing</span>
+            </div>
+        </a>
+    </div>
 
-                                                        Sedang - Perlu perhatian hari ini
-                                                    </span>
-                                                @elseif($essayCount > 0)
-                                                    <span class="priority-text normal">
-                                                        <i class="ti ti-info-circle"></i>
-                                                        Rendah - Dapat dikerjakan besok
-                                                    </span>
-                                                @else
-                                                    <span class="priority-text success">
-                                                        <i class="ti ti-check-circle"></i>
-                                                        Selesai - Semua esai telah dinilai
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="action-button">
-                                            <a href="{{ route('quiz.essay.grade', $userEssays->first()->id) }}" class="grade-btn">
-                                                <div class="btn-icon">
-                                                    <i class="ti ti-edit"></i>
-                                                </div>
-                                                <div class="btn-content">
-                                                    <span class="btn-title">Grade Essays</span>
-                                                    <span class="btn-subtitle">Start reviewing</span>
-                                                </div>
-                                            </a>
-                                        </div>
+    @if($essayCount > 0)
 
-                                        @if($essayCount > 0)
-                                            <div class="action-button">
-                                                @if($essayCount == 1)
-                                                    <a href="{{ route('quiz.essay.grade', $userEssays->first()->id) }}" class="grade-btn">
-                                                        <div class="btn-icon">
-                                                            <i class="ti ti-edit"></i>
-                                                        </div>
-                                                        <div class="btn-content">
-                                                            <span class="btn-title">Beri Nilai</span>
-                                                            <span class="btn-subtitle">Tinjau jawaban esai</span>
-                                                        </div>
-                                                    </a>
-                                                @else
-                                                    <a href="{{ route('quiz.essay.grade-user', $userId) }}" class="grade-btn">
-                                                        <div class="btn-icon">
-                                                            <i class="ti ti-list-check"></i>
-                                                            {{-- BADGE MERAH DIHAPUS DARI SINI --}}
-                                                        </div>
-                                                        <div class="btn-content">
-                                                            <span class="btn-title">Mulai Penilaian</span>
-                                                            <span class="btn-subtitle">{{ $essayCount }} esai menunggu</span>
-                                                        </div>
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        @else
-                                            <div class="action-button">
-                                                <a href="{{ route('quiz.essay.grading') }}" class="grade-btn grade-btn-completed">
-                                                    <div class="btn-icon">
-                                                        <i class="ti ti-check-circle"></i>
-                                                    </div>
-                                                    <div class="btn-content">
-                                                        <span class="btn-title">Lihat Hasil</span>
-                                                        <span class="btn-subtitle">Semua penilaian selesai</span>
-                                                    </div>
-                                                </a>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+        <div class="action-button">
+            @if($essayCount == 1)
+                <a href="{{ route('quiz.essay.grade', $quizEssays->first()->id) }}" class="grade-btn">
+                    <div class="btn-icon">
+                        <i class="ti ti-edit"></i>
                     </div>
+                    <div class="btn-content">
+                        <span class="btn-title">Beri Nilai</span>
+                        <span class="btn-subtitle">Tinjau jawaban esai</span>
+                    </div>
+                </a>
+            @else
+                <a href="{{ route('quiz.essay.grade-user', $userId) }}" class="grade-btn">
+                    <div class="btn-icon">
+                        <i class="ti ti-list-check"></i>
+                    </div>
+                    <div class="btn-content">
+                        <span class="btn-title">Mulai Penilaian</span>
+                        <span class="btn-subtitle">{{ $essayCount }} esai menunggu</span>
+                    </div>
+                </a>
+            @endif
+        </div>
+
+    @else
+
+        <div class="action-button">
+            <a href="{{ route('quiz.essay.grading') }}" class="grade-btn grade-btn-completed">
+                <div class="btn-icon">
+                    <i class="ti ti-check-circle"></i>
+                </div>
+                <div class="btn-content">
+                    <span class="btn-title">Lihat Hasil</span>
+                    <span class="btn-subtitle">Semua penilaian selesai</span>
+                </div>
+            </a>
+        </div>
+
+    @endif
+
+@endforeach
 
                     <!-- Pagination -->
 

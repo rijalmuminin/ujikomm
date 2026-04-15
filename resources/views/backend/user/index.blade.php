@@ -68,7 +68,7 @@
     </a>
                     <a href="{{ route('users.create') }}" class="btn btn-primary btn-lg px-4">
                         <i class="ti ti-plus me-2"></i>Buat User Baru
-                    </a>
+                    </a>    
                 </div>
             </div>
         </div>
